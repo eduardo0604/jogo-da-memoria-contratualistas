@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🧠 Jogo da Memória - Filósofos 🎴</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right, #e0eafc, #cfdef3);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    h1 {
+      margin-bottom: 20px;
+      color: #333;
+      font-size: 28px;
+    }
+    .game-board {
+      display: grid;
+      grid-template-columns: repeat(4, 150px);
+      gap: 15px;
+    }
+    .card {
+      perspective: 1000px;
+    }
+    .card-inner {
+      position: relative;
+      width: 150px;
+      height: 100px;
+      transform-style: preserve-3d;
+      transition: transform 0.6s;
+    }
+    .card.flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+    .card-front, .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      padding: 10px;
+      box-sizing: border-box;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    .card-front {
+      background: #4a4e69;
+      color: #fff;
+      font-size: 28px;
+    }
+    .card-back {
+      background: #fff;
+      color: #222;
+      transform: rotateY(180deg);
+      font-size: 14px;
+      border: 2px solid #4a4e69;
+    }
+    .matched .card-inner {
+      box-shadow: 0 0 10px 4px #28a745;
+    }
+    .footer {
+      margin-top: 30px;
+      font-size: 16px;
+      color: #444;
+    }
+    .congrats {
+      background-color: #28a745;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 10px;
+      margin-top: 20px;
+      font-size: 18px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧠 Jogo da Memória - Filósofos 🎴</h1>
+  <div class="game-board" id="gameBoard"></div>
+  <div class="congrats" id="congratsMsg">🎉 Parabéns! Você encontrou todos os pares! 🧩👏</div>
+  <div class="footer">🧪 Encontre os pares: 🧓 nome do filósofo + 💭 uma de suas ideias</div>
+
+  <script>
+    const cardsData = [
+      { id: 'voltaire', type: 'nome', text: '👨‍🎓 Voltaire' },
+      { id: 'voltaire', type: 'ideia', text: '💬 "Defendia a liberdade de expressão"' },
+      { id: 'voltaire', type: 'nome', text: '👨‍🎓 Voltaire' },
+      { id: 'voltaire', type: 'ideia', text: '📚 "Combateu o fanatismo religioso"' },
+
+      { id: 'rousseau', type: 'nome', text: '👨‍🏫 Rousseau' },
+      { id: 'rousseau', type: 'ideia', text: '🌱 "O homem nasce bom, a sociedade o corrompe"' },
+      { id: 'rousseau', type: 'nome', text: '👨‍🏫 Rousseau' },
+      { id: 'rousseau', type: 'ideia', text: '🤝 "A vontade geral deve prevalecer"' },
+
+      { id: 'locke', type: 'nome', text: '🧑‍⚖️ Locke' },
+      { id: 'locke', type: 'ideia', text: '🛡️ "Direitos naturais: vida, liberdade e propriedade"' },
+      { id: 'locke', type: 'nome', text: '🧑‍⚖️ Locke' },
+      { id: 'locke', type: 'ideia', text: '🏛️ "O governo deve proteger os direitos individuais"' },
+
+      { id: 'hobbes', type: 'nome', text: '🦁 Hobbes' },
+      { id: 'hobbes', type: 'ideia', text: '🐺 "O homem é o lobo do homem"' },
+      { id: 'hobbes', type: 'nome', text: '🦁 Hobbes' },
+      { id: 'hobbes', type: 'ideia', text: '🔐 "Defendia o Estado forte para manter a ordem"' }
+    ];
+
+    let flippedCards = [];
+    let matchedCount = 0;
+
+    function shuffle(array) {
+      return array.sort(() => 0.5 - Math.random());
+    }
+
+    function createCard(cardData) {
+      const card = document.createElement('div');
+      card.classList.add('card');
+      card.dataset.id = cardData.id;
+      card.dataset.type = cardData.type;
+
+      const cardInner = document.createElement('div');
+      cardInner.classList.add('card-inner');
+
+      const front = document.createElement('div');
+      front.classList.add('card-front');
+      front.textContent = '❓';
+
+      const back = document.createElement('div');
+      back.classList.add('card-back');
+      back.textContent = cardData.text;
+
+      cardInner.appendChild(front);
+      cardInner.appendChild(back);
+      card.appendChild(cardInner);
+
+      card.addEventListener('click', () => {
+        if (card.classList.contains('flipped') || card.classList.contains('matched')) return;
+
+        card.classList.add('flipped');
+        flippedCards.push(card);
+
+        if (flippedCards.length === 2) {
+          const [card1, card2] = flippedCards;
+          const sameId = card1.dataset.id === card2.dataset.id;
+          const differentType = card1.dataset.type !== card2.dataset.type;
+
+          if (sameId && differentType) {
+            card1.classList.add('matched');
+            card2.classList.add('matched');
+            matchedCount += 2;
+            if (matchedCount === cardsData.length) {
+              setTimeout(() => {
+                document.getElementById('congratsMsg').style.display = 'block';
+              }, 500);
+            }
+          } else {
+            setTimeout(() => {
+              card1.classList.remove('flipped');
+              card2.classList.remove('flipped');
+            }, 1000);
+          }
+          flippedCards = [];
+        }
+      });
+
+      return card;
+    }
+
+    const gameBoard = document.getElementById('gameBoard');
+    const shuffledCards = shuffle([...cardsData]);
+    shuffledCards.forEach(cardData => {
+      const card = createCard(cardData);
+      gameBoard.appendChild(card);
+    });
+  </script>
+</body>
+</html>
